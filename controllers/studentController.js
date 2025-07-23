@@ -1,34 +1,19 @@
 import Student from "../models/student.js"
 
-/*export function getStudents(req,res){ 
-    Student.find().then(
-        (students)=>{
-            res.json(students)
-        }
-    ).catch(
-        ()=>{
-            res.json(
-                {
-                    message:"failed to fatch students"
-                }
-            )
-        }
-    )
-    
-    }*/
-   export async function getStudents(req,res){
-    try{
-        const students = await Student.find()
-        res.json(students);
 
-    }catch(error){
-        res.status(500).json({
-            message:"faild to fetch students",
-            error:error.message
-        })
+//    export async function getStudentsSync(req,res){
+//     try{
+//         const students = await Student.find()
+//         res.json(students);
 
-    }
-   }
+//     }catch(error){
+//         res.status(500).json({
+//             message:"faild to fetch students",
+//             error:error.message
+//         })
+
+//     }
+//    }
 export function createStudents(req,res){
     
     if(req.user == null){
