@@ -6,7 +6,7 @@ import studentRouter from "./routers/studentRouter.js"
 import userRouter from "./routers/userRouter.js"
 import jwt from "jsonwebtoken"
 
-
+//dd d 
 const app = express()
 app.use(bodyParser.json())
 
