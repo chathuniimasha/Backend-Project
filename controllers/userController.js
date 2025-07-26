@@ -85,3 +85,13 @@ export function userLogin(req,res){
         }
     )
 }
+export function isAdmin(req){
+    if(req.user == null){
+        return false;
+    }
+    if(req.user.role == "admin"){
+        return true;
+    }else{
+        return false;
+    }
+}

@@ -1,12 +1,11 @@
 import express from "express" //import the express from node_modules
 import mongoose from "mongoose" //import the mongoose from node_modules
 import bodyParser from "body-parser" //import the body-parser from node_modules
-import Student from "./models/student.js"
-import studentRouter from "./routers/studentRouter.js"
 import userRouter from "./routers/userRouter.js"
 import jwt from "jsonwebtoken"
+import productRouter from "./routers/productRouter.js"
 
-//dd d 
+
 const app = express()
 app.use(bodyParser.json())
 
@@ -50,9 +49,8 @@ mongoose.connect(connectionString).then(
 
 
 
-app.use("/students",studentRouter)
-app.use("/users",userRouter)
-
+app.use("/api/users",userRouter)
+app.use("/api/products",productRouter)
 
 
 app.listen(5000,()=>{
