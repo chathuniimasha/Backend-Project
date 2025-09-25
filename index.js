@@ -5,10 +5,13 @@ import userRouter from "./routers/userRouter.js"
 import jwt from "jsonwebtoken"
 import productRouter from "./routers/productRouter.js"
 import dotenv from "dotenv"
+import cors from "cors"
+import orderRouter from "./routers/orderRouter.js"
 dotenv.config()
 
 const app = express()
 app.use(bodyParser.json())
+app.use(cors())
 
 app.use(
     (req,res,next)=>{
@@ -52,6 +55,7 @@ mongoose.connect(connectionString).then(
 
 app.use("/api/users",userRouter)
 app.use("/api/products",productRouter)
+app.use("/api/orders",orderRouter)
 
 
 app.listen(5000,()=>{
