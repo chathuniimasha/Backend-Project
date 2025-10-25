@@ -16,9 +16,12 @@ app.use(cors())
 app.use(
     (req,res,next)=>{
         const value = req.header("Authorization")
+        //console.log(value)
         if(value != null){
             const token = value.replace("Bearer ","")
+            //console.log(token)
             jwt.verify(token,process.env.JWT_SECRET,(err,decoded)=>{
+                //console.log(decoded)
                 if(decoded == null){
                     res.status(403).json(
                         {
