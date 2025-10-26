@@ -45,7 +45,7 @@ const productSchema = new mongoose.Schema(
         required : true,
         default : "cosmatics"
        }
-y
+
     }
 )
 const Product = mongoose.model("products",productSchema)
