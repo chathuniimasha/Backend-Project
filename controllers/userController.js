@@ -5,6 +5,7 @@ import dotenv from "dotenv"
 import axios from "axios";
 import nodemailer from "nodemailer"
 import OTP from "../models/otp.js";
+import Contact from "../models/contact.js";
 
 dotenv.config()
 
@@ -267,3 +268,45 @@ export async function resetPassword(req,res){
         res.status(500).json({ message: "Failed to reset password" });
     }
 }
+
+export async function sendContactMessage(req, res) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Login required" });
+  }
+
+  const { subject, message, email } = req.body;
+
+  
+  if (!subject || !message || !email) {
+    return res.status(400).json({ message: "Subject, message, and email are required" });
+  }
+
+  if (message.length < 10) {
+    return res.status(400).json({ message: "Message must be at least 10 characters" });
+  }
+
+  
+  if (email !== req.user.email) {
+    return res.status(403).json({
+      message: "You can only send messages using your registered email",
+    });
+  }
+
+  try {
+    const contact = new Contact({
+      
+      name: `${req.user.firstName} ${req.user.lastName}`,
+      email: req.user.email,
+      subject,
+      message,
+    });
+
+    await contact.save();
+
+    res.json({ message: "Message sent successfully!" });
+  } catch (err) {
+    console.error("Contact Error:", err);
+    res.status(500).json({ message: "Failed to send message" });
+  }
+}
+
