@@ -6,6 +6,9 @@ import axios from "axios";
 import nodemailer from "nodemailer"
 import OTP from "../models/otp.js";
 import Contact from "../models/contact.js";
+import review from "../models/review.js";
+import Review from "../models/review.js";
+import Order from "../models/order.js";
 
 dotenv.config()
 
@@ -310,3 +313,75 @@ export async function sendContactMessage(req, res) {
   }
 }
 
+export const createReview = async (req, res) => {
+  const token = req.header("Authorization")?.replace("Bearer ", "");
+  const { rating, comment, product } = req.body;
+
+  // === 1. Validate Input ===
+  if (!rating || !comment || !product) {
+    return res.status(400).json({ message: "All fields required" });
+  }
+  if (comment.length < 10) {
+    return res.status(400).json({ message: "Comment too short" });
+  }
+
+  // === 2. Verify Token Manually ===
+  if (!token) {
+    return res.status(401).json({ message: "Login required" });
+  }
+
+  let user;
+  try {
+    user = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+
+  // === 3. Check Purchase (Completed Order) ===
+  try {
+    const hasPurchased = await Order.findOne({
+      email: user.email,
+      status: "Completed",
+    });
+
+    if (!hasPurchased) {
+      return res.status(403).json({
+        message: "You must complete a purchase to leave a review",
+      });
+    }
+  } catch (err) {
+    return res.status(500).json({ message: "Error checking purchase" });
+  }
+
+  // === 4. Save Review ===
+  try {
+    const review = new Review({
+      user: user._id,
+      name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+      email: user.email,
+      rating,
+      comment,
+      product,
+    });
+
+    await review.save();
+    res.status(201).json({ message: "Review submitted!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to save review" });
+  }
+};
+
+// GET ALL REVIEWS (No auth needed)
+export const getReviews = async (req, res) => {
+  try {
+    const reviews = await Review.find()
+      .sort({ createdAt: -1 })
+      .select("-user -email")
+      .lean();
+
+    res.json({ reviews });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load reviews" });
+  }
+};
