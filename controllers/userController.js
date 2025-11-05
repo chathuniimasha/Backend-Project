@@ -313,48 +313,41 @@ export async function sendContactMessage(req, res) {
   }
 }
 
-export const createReview = async (req, res) => {
-  const token = req.header("Authorization")?.replace("Bearer ", "");
-  const { rating, comment, product } = req.body;
 
-  // === 1. Validate Input ===
-  if (!rating || !comment || !product) {
+
+export async function createReview(req, res){
+  const { rating, comment, product, orderID } = req.body;
+  const user = req.user; // From your global middleware
+
+  // 1. Validate input
+  if (!rating || !comment || !product || !orderID) {
     return res.status(400).json({ message: "All fields required" });
   }
   if (comment.length < 10) {
     return res.status(400).json({ message: "Comment too short" });
   }
 
-  // === 2. Verify Token Manually ===
-  if (!token) {
-    return res.status(401).json({ message: "Login required" });
-  }
-
-  let user;
   try {
-    user = jwt.verify(token, process.env.JWT_SECRET);
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid token" });
-  }
-
-  // === 3. Check Purchase (Completed Order) ===
-  try {
-    const hasPurchased = await Order.findOne({
+    // 2. Find order: must match orderID, email, and be Completed
+    const order = await Order.findOne({
+      orderID,
       email: user.email,
-      status: "Completed",
+      status: "completed",
     });
 
-    if (!hasPurchased) {
+    if (!order) {
       return res.status(403).json({
-        message: "You must complete a purchase to leave a review",
+        message: "Invalid order ID or order not completed",
       });
     }
-  } catch (err) {
-    return res.status(500).json({ message: "Error checking purchase" });
-  }
 
-  // === 4. Save Review ===
-  try {
+    // 3. Prevent duplicate review
+    const existing = await Review.findOne({ orderID });
+    if (existing) {
+      return res.status(403).json({ message: "You already reviewed this order" });
+    }
+
+    // 4. Save review
     const review = new Review({
       user: user._id,
       name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
@@ -362,17 +355,17 @@ export const createReview = async (req, res) => {
       rating,
       comment,
       product,
+      orderID,
     });
 
     await review.save();
     res.status(201).json({ message: "Review submitted!" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to save review" });
+    console.error("Review Error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-// GET ALL REVIEWS (No auth needed)
 export const getReviews = async (req, res) => {
   try {
     const reviews = await Review.find()
