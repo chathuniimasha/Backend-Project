@@ -6,9 +6,8 @@ import axios from "axios";
 import nodemailer from "nodemailer"
 import OTP from "../models/otp.js";
 import Contact from "../models/contact.js";
-import review from "../models/review.js";
-import Review from "../models/review.js";
-import Order from "../models/order.js";
+
+
 
 dotenv.config()
 
@@ -315,66 +314,6 @@ export async function sendContactMessage(req, res) {
 
 
 
-export async function createReview(req, res){
-  const { rating, comment, product, orderID } = req.body;
-  const user = req.user; // From your global middleware
 
-  // 1. Validate input
-  if (!rating || !comment || !product || !orderID) {
-    return res.status(400).json({ message: "All fields required" });
-  }
-  if (comment.length < 10) {
-    return res.status(400).json({ message: "Comment too short" });
-  }
 
-  try {
-    // 2. Find order: must match orderID, email, and be Completed
-    const order = await Order.findOne({
-      orderID,
-      email: user.email,
-      status: "completed",
-    });
 
-    if (!order) {
-      return res.status(403).json({
-        message: "Invalid order ID or order not completed",
-      });
-    }
-
-    // 3. Prevent duplicate review
-    const existing = await Review.findOne({ orderID });
-    if (existing) {
-      return res.status(403).json({ message: "You already reviewed this order" });
-    }
-
-    // 4. Save review
-    const review = new Review({
-      user: user._id,
-      name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-      email: user.email,
-      rating,
-      comment,
-      product,
-      orderID,
-    });
-
-    await review.save();
-    res.status(201).json({ message: "Review submitted!" });
-  } catch (err) {
-    console.error("Review Error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-export const getReviews = async (req, res) => {
-  try {
-    const reviews = await Review.find()
-      .sort({ createdAt: -1 })
-      .select("-user -email")
-      .lean();
-
-    res.json({ reviews });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to load reviews" });
-  }
-};
