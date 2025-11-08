@@ -6,8 +6,8 @@ import axios from "axios";
 import nodemailer from "nodemailer"
 import OTP from "../models/otp.js";
 import Contact from "../models/contact.js";
-import review from "../models/review.js";
-import Review from "../models/review.js";
+
+
 import Order from "../models/order.js";
 
 dotenv.config()
@@ -18,7 +18,7 @@ const transporter = nodemailer.createTransport({
 	secure: false,
 	auth: {
 		user: process.env.EMAIL_USER,
-		pass: process.env.EMAIL_PASS,
+		pass: process.env.EMAIL_PASS
 	},
 });
 
