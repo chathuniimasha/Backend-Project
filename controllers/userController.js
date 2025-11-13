@@ -3,7 +3,7 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import dotenv from "dotenv"
 import axios from "axios";
-import nodemailer from "nodemailer"
+import { Resend } from 'resend';
 import OTP from "../models/otp.js";
 import Contact from "../models/contact.js";
 
@@ -11,20 +11,7 @@ import Contact from "../models/contact.js";
 
 dotenv.config()
 
-const transporter = nodemailer.createTransport({
-	host: "smtp.gmail.com",
-	port: 587,
-	secure: false,
-	auth: {
-		user: process.env.EMAIL_USER,
-		pass: process.env.EMAIL_PASS,
-	},
-    connectionTimeout: 15000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    debug: true, // Remove in production
-    logger: true // Remove in production
-});
+const resend = new Resend(process.env.API_KEY);
 
 export function createUser(req,res){
 
@@ -227,24 +214,18 @@ export async function sendOTP(req,res){
         const newOTP = new OTP({ email: email, otp: otpCode });
         await newOTP.save();
 
-        const message = {
+        await resend.emails.send( {
             from : process.env.EMAIL_USER,
             to: email,
             subject: "Your OTP Code",
             text: `Your OTP code is ${otpCode}`,
-        }
-        transporter.sendMail(message, (error, info) => {
-            if (error) {
-                console.error("Error sending email:", error);
-                res.status(500).json({ message: "Failed to send OTP" });
-            } else {
-                console.log("Email sent:", info.response);
-                res.json({ message: "OTP sent successfully" });
-            }
+            html: `<strong>Your OTP: ${otpCode}</strong><p>Valid for 10 minutes.</p>`,
         });
+        res.json({ message: "OTP sent successfully" });
 
-    }catch{
-        res.status(500).json({ message: "Failed to delete previous OTPs" });
+    }catch(error){
+       console.error("Resend Error:", error);
+       res.status(500).json({ message: "Failed to send OTP" });
     }
     
 }
