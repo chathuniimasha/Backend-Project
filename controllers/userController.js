@@ -3,15 +3,20 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import dotenv from "dotenv"
 import axios from "axios";
-import { Resend } from 'resend';
+import nodemailer from "nodemailer"
 import OTP from "../models/otp.js";
-import Contact from "../models/contact.js";
-
-
 
 dotenv.config()
 
-const resend = new Resend(process.env.API_KEY);
+const transporter = nodemailer.createTransport({
+	host: "smtp.gmail.com",
+	port: 587,
+	secure: false,
+	auth: {
+		user: process.env.EMAIL_USER,
+		pass: process.env.EMAIL_PASS,
+	},
+});
 
 export function createUser(req,res){
 
@@ -22,7 +27,7 @@ export function createUser(req,res){
         lastName : req.body.lastName,
         email : req.body.email,
         password : passwordHash
-        
+
     }
 
     const user = new User(userData)
@@ -61,7 +66,7 @@ export function userLogin(req,res){
                         message : "User not found"
                     }
                 )
-                
+
             }else{
                 const isPasswordCorrect = bcrypt.compareSync(password,user.password)
                 if(isPasswordCorrect){
@@ -74,7 +79,7 @@ export function userLogin(req,res){
                             isBlocked : user.isBlocked,
                             isEmailVerified : user.isEmailVerified,
                             image : user.image
-                            
+
                         },
                         process.env.JWT_SECRET
                     )
@@ -123,7 +128,7 @@ export function isAdmin(req){
 
 export async function googleLogin(req,res){
     const googleToken = req.body.token;
-    
+
 
     try{
         const response = await axios.get(
@@ -148,7 +153,7 @@ export async function googleLogin(req,res){
                             isBlocked : user.isBlocked,
                             isEmailVerified : user.isEmailVerified,
                             image : user.image,
-                            
+
                         },
                         process.env.JWT_SECRET
                     );
@@ -181,7 +186,7 @@ export async function googleLogin(req,res){
                             isBlocked : newUser.isBlocked,
                             isEmailVerified : newUser.isEmailVerified,
                             image : newUser.image,
-                            
+
                         },
                         process.env.JWT_SECRET
                     );
@@ -214,20 +219,26 @@ export async function sendOTP(req,res){
         const newOTP = new OTP({ email: email, otp: otpCode });
         await newOTP.save();
 
-        await resend.emails.send( {
+        const message = {
             from : process.env.EMAIL_USER,
             to: email,
             subject: "Your OTP Code",
             text: `Your OTP code is ${otpCode}`,
-            html: `<strong>Your OTP: ${otpCode}</strong><p>Valid for 10 minutes.</p>`,
+        }
+        transporter.sendMail(message, (error, info) => {
+            if (error) {
+                console.error("Error sending email:", error);
+                res.status(500).json({ message: "Failed to send OTP" });
+            } else {
+                console.log("Email sent:", info.response);
+                res.json({ message: "OTP sent successfully" });
+            }
         });
-        res.json({ message: "OTP sent successfully" });
 
-    }catch(error){
-       console.error("Resend Error:", error);
-       res.status(500).json({ message: "Failed to send OTP" });
+    }catch{
+        res.status(500).json({ message: "Failed to delete previous OTPs" });
     }
-    
+
 }
 
 
@@ -256,7 +267,6 @@ export async function resetPassword(req,res){
         res.status(500).json({ message: "Failed to reset password" });
     }
 }
-
 export async function sendContactMessage(req, res) {
   if (!req.user) {
     return res.status(401).json({ message: "Login required" });
@@ -297,9 +307,3 @@ export async function sendContactMessage(req, res) {
     res.status(500).json({ message: "Failed to send message" });
   }
 }
-
-
-
-
-
-
